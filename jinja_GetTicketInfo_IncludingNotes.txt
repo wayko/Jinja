@@ -1,0 +1,44 @@
+{% set client_notes = [] %}
+{% set internal_notes = [] %}
+{% for tn in CTX.ticket_notes %}
+  {% if tn.result is defined and tn.result.result is defined %}
+    {% for note in tn.result.result %}
+      {% if note.ticket.id | string == item().ticket_id | string %}
+        {% if note.detailDescriptionFlag %}
+          {% set _ = client_notes.append(note.text) %}
+        {% endif %}
+        {% if note.internalAnalysisFlag %}
+          {% set _ = internal_notes.append(note.text) %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+Hello {{item().ticket_contact}},
+
+Here are the latest notes for the following ticket:
+
+Ticket #: {{ item().ticket_id }}
+Summary: {{ item().ticket_summary }}
+Status: {{ item().ticket_status }}
+
+{% if client_notes | length > 0 %}
+Client-Facing Notes:
+{% for n in client_notes %}
+Note #{{ loop.index }}: {{ n }}
+{% endfor %}
+{% else %}
+No client-facing notes available.
+{% endif %}
+
+{% if internal_notes | length > 0 %}
+Internal Notes:
+{% for n in internal_notes %}
+Note #{{ loop.index }}: {{ n }}
+{% endfor %}
+{% else %}
+No internal notes available.
+{% endif %}
+
+Best regards,
+Service Desk

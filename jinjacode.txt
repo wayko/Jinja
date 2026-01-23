@@ -1,0 +1,23 @@
+{% set mylist = [] %}
+{%- for tickets in CTX.ticket_list -%}
+    {% do mylist.append(tickets) %}
+{% endfor %}
+
+{% for i in range(mylist | length) %}
+Ticket ID: {{mylist[i].id}}
+Ticket Summary: {{mylist[i].summary}}
+Ticket Status: {{mylist[i].status.name}}
+{% endfor %}
+
+
+{%- for tickets in CTX.ticket_list -%}
+{% if "test" in tickets.summary | lower %}
+Ticket ID: {{tickets.id}}
+Ticket Summary: {{tickets.summary}}
+Ticket Status: {{tickets.status.name}}
+Ticket Entered: {{tickets._info.dateEntered}}
+{{"\n"}}
+{% endif %}
+{% endfor %}
+
+board/name="Maintenance"  AND status/name="New" AND dateEntered >= "2025-10-19T00:00:00" AND summary LIKE '%test%'
