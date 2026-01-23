@@ -21,3 +21,17 @@ Ticket Entered: {{tickets._info.dateEntered}}
 {% endfor %}
 
 board/name="Maintenance"  AND status/name="New" AND dateEntered >= "2025-10-19T00:00:00" AND summary LIKE '%test%'
+
+{% set my_list = [] %}
+{% for tickets in CTX.ticket_list %}
+{% if "test" in tickets.summary | lower %}
+{% do my_list.append({
+"ticket_id": tickets.id,
+"ticket_summary": tickets.summary,
+"ticket_status": tickets.status.name,
+"ticket_entered": tickets._info.dateEntered,
+"ticket_contact": tickets.contact.name
+}) %}
+{% endif %}
+{% endfor %}
+{{ my_list }}
