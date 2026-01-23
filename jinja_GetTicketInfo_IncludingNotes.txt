@@ -18,27 +18,27 @@ Hello {{item().ticket_contact}},
 
 Here are the latest notes for the following ticket:
 
-Ticket #: {{ item().ticket_id }}
-Summary: {{ item().ticket_summary }}
-Status: {{ item().ticket_status }}
-
+Ticket #: {{ item().ticket_id }}{{"\n"}}
+Summary: {{ item().ticket_summary }}{{"\n"}}
+Status: {{ item().ticket_status }}{{"\n"}}
+{{"\n"}}
 {% if client_notes | length > 0 %}
-Client-Facing Notes:
+Client-Facing Notes:{{"\n"}}
 {% for n in client_notes %}
-Note #{{ loop.index }}: {{ n }}
+Note #{{ loop.index }}: {{ n }}{{"\n"}}
 {% endfor %}
 {% else %}
 No client-facing notes available.
 {% endif %}
-
+{{"\n"}}
 {% if internal_notes | length > 0 %}
-Internal Notes:
+Internal Notes:{{"\n"}}
 {% for n in internal_notes %}
-Note #{{ loop.index }}: {{ n }}
+Note #{{ loop.index }}: {{ n }}{{"\n"}}
 {% endfor %}
 {% else %}
 No internal notes available.
 {% endif %}
-
+{{"\n"}}
 Best regards,
 Service Desk
