@@ -35,3 +35,191 @@ board/name="Maintenance"  AND status/name="New" AND dateEntered >= "2025-10-19T0
 {% endif %}
 {% endfor %}
 {{ my_list }}
+
+
+
+{% set groups = {} %}
+ 
+{% for summary in CTX.ticket_summary %}
+  {% set split_summary = (summary | lower | trim).split(" ") %}
+  {% for word in split_summary %}
+    {% if word != "" %}
+      {% if word not in groups %}
+        {% set _ = groups.update({ word: [] }) %}
+      {% endif %}
+      {% set _ = groups[word].append(summary) %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+ 
+{# -------- DISPLAY RESULTS -------- #}
+{% for key in groups.keys() | sort %}
+Keyword: {{key}}
+{% for item in groups[key] %}
+  - {{item}}
+{% endfor %}
+{% endfor %}
+
+
+{%- set stopwords = ['the', 'and', 'for', 'not', 'with', 'this', 'that', 'from', 'are', 'was', 'been', 'have', 'has', 'will', 'can', 'but', 'all', 'your', 'our'] -%}
+{%- set words_raw = (CTX.ticket_summary | replace('-', ' ') | replace('/', ' ') | replace('"', '')).split(' ') -%}
+{%- set keywords = [w | trim | lower for w in words_raw if w | trim | length > 3 and w | trim | lower not in stopwords and not w | trim | regex_match('^[0-9]')] -%}
+{%- set keyword_conditions = ['summary contains "' ~ kw ~ '"' for kw in keywords[:3]] -%}
+
+
+
+{% set client_notes = [] %}
+{% set internal_notes = [] %}
+{% for tn in CTX.ticket_notes %}
+  {% if tn.result is defined and tn.result.result is defined %}
+    {% for note in tn.result.result %}
+      {% if note.ticket.id | string == item().ticket_id | string %}
+        {% if note.detailDescriptionFlag %}
+          {% set _ = client_notes.append(note.text) %}
+        {% endif %}
+        {% if note.internalAnalysisFlag %}
+          {% set _ = internal_notes.append(note.text) %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+Hello {{item().ticket_contact}},
+
+Here are the latest notes for the following ticket:
+
+Ticket #: {{ item().ticket_id }}{{"\n"}}
+Summary: {{ item().ticket_summary }}{{"\n"}}
+Status: {{ item().ticket_status }}{{"\n"}}
+{{"\n"}}
+{% if client_notes | length > 0 %}
+Client-Facing Notes:{{"\n"}}
+{% for n in client_notes %}
+Note #{{ loop.index }}: {{ n }}{{"\n"}}
+{% endfor %}
+{% else %}
+No client-facing notes available.
+{% endif %}
+{{"\n"}}
+{% if internal_notes | length > 0 %}
+Internal Notes:{{"\n"}}
+{% for n in internal_notes %}
+Note #{{ loop.index }}: {{ n }}{{"\n"}}
+{% endfor %}
+{% else %}
+No internal notes available.
+{% endif %}
+{{"\n"}}
+{% set groups = {} %}
+ 
+{% for summary in CTX.ticket_summary %}
+  {% set split_summary = (summary | lower | trim).split(" ") %}
+  {% for word in split_summary %}
+    {% if word != "" %}
+      {% if word not in groups %}
+        {% set _ = groups.update({ word: [] }) %}
+      {% endif %}
+      {% set _ = groups[word].append(summary) %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+<h2>Similar Tickets</h2>
+{# -------- DISPLAY RESULTS -------- #}
+{% for key in groups.keys() | sort %}
+Keyword: {{key}}
+{% for item in groups[key] %}
+  - {{item}}
+  {{"\n"}}
+{% endfor %}
+{% endfor %}
+Best regards,
+Service Desk
+
+
+{%- set stopwords = ['the', 'and', 'for', 'not', 'with', 'this', 'that', 'from', 'are', 'was', 'been', 'have', 'has', 'will', 'can', 'but', 'all', 'your', 'our'] -%}
+{%- set words_raw = (CTX.ticket_summary | replace('-', ' ') | replace('/', ' ') | replace('"', '')).split(' ') -%}
+{%- set keywords = [w | trim | lower for w in words_raw if w | trim | length > 3 and w | trim | lower not in stopwords and not w | trim | regex_match('^[0-9]')] -%}
+{%- set keyword_conditions = ['summary contains "' ~ kw ~ '"' for kw in keywords[:3]] -%}
+{% if keyword_conditions %}company/name!="{{ item().ticket_company }}" AND board/name="{{ item().ticket_board }}" AND ({{ keyword_conditions | join(' OR ') }}) AND id != {{ item().ticket_id }} AND dateEntered > [{{ now() | convert_from_epoch | datedelta(days=-90) | format_datetime("%Y-%m-%d") }}T00:00:00Z]{% else %}id=0{% endif %}
+
+
+
+{% for i  in range(CTX.debug_subscriptions.data|length) %}
+Billing Term: {{CTX.debug_subscriptions.data[i].billingTerm }}{{"\n"}}
+Created Date: {{CTX.debug_subscriptions.data[i].createdDate }}{{"\n"}}
+Product ID: {{CTX.debug_subscriptions.data[i].productId }}{{"\n"}}
+Price: {{CTX.debug_subscriptions.data[i].price }}{{"\n"}}
+Status: {{CTX.debug_subscriptions.data[i].status }}{{"\n"}}
+{% endfor %}
+
+{% set gotDNSFilter = [] %}
+{% set itGlueCompanies = [] %}
+{% for i in range(CTX.All_Users | length) %}
+    {% do gotDNSFilter.append(CTX.All_Users[i].attributes.name) %}
+{% endfor %}
+
+{% for j in range(CTX.All_Companies | length) %}
+    {% if CTX.All_Companies[j].attributes["organization-type-name"] == "Fully Managed" and CTX.All_Companies[j].attributes["organization-status-name"] == "Active" %}
+    {% do itGlueCompanies.append(CTX.All_Companies[j].attributes.name) %}
+    {% endif %}
+{% endfor %}
+{% for companies in itGlueCompanies %}
+    {% if companies not in gotDNSFilter %}
+        {{companies}}
+    {% endif %}
+{%endfor%}
+
+
+{{ [{"companyName": CTX.company_name, "productName": CTX.product_results[idx].result.result.data.name, "quantity": sub.quantity, "price": sub.price, "status": sub.status, "billingTerm": sub.billingTerm, "startDate": sub.startDate} for idx, sub in CTX.debug_subscriptions.data | enumerate] }}
+
+
+{% for idx, sub in enumerate(CTX.debug_subscriptions.data) %}
+{{  [{"companyName": CTX.company_name,
+"productName": CTX.product_results[idx].result.result.data.name, "quantity": sub.quantity,
+"price": sub.price,
+"status": sub.status,
+"billingTerm": sub.billingTerm,
+"startDate": sub.startDate}] }}
+{% endfor %}
+
+{% set allProducts = [] %}
+{% for idx, sub in enumerate(CTX.debug_subscriptions.data) %}
+{% do
+    allProducts.append
+    ({
+        "companyName": CTX.company_name,
+        "productName": CTX.product_results[idx].result.result.data.name, "quantity": sub.quantity,
+        "price": sub.price,
+        "status": sub.status,
+        "billingTerm": sub.billingTerm,
+        "startDate": sub.startDate
+    })
+%}
+{% endfor %}
+{{allProducts}}
+
+
+{{ {
+    "companies": [
+        {"companyName": c.attributes.name} 
+        for c in (CTX.All_Companies | sort(attribute='attributes.name'))
+        if c.attributes["organization-type-name"] == "Fully Managed"
+        and c.attributes["organization-status-name"] == "Active"
+        and 'happy' not in (c.attributes.name | lower)
+        and 'api' not in (c.attributes.name | lower)
+        and c.attributes.name not in (CTX.All_Users | map(attribute='attributes.name') | list)
+    ]
+} }}
+
+Hello,
+
+The following companies do not have DNS Filter as part of their security Package {{"\n"}}
+
+<h3>Companies</h3>
+{%for i in range(ctx.noDNSFilter.companies | length)%}
+{{ctx.noDNSFilter.companies[i].companyName}}{{"\n"}}
+{%endfor%}
+
+
+Best regards,{{"\n"}}
+Service Desk
